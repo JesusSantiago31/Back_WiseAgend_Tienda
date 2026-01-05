@@ -1,0 +1,2 @@
+API_TOKEN = "MI_TOKEN_SEGURO_123"
+SERVICE_ACCOUNT = "serviceAccountKey.json"
