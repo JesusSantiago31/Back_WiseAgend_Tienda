@@ -15,7 +15,13 @@ if SERVICE_ACCOUNT_JSON:
         # If parsing fails, leave as None and other methods will be used
         SERVICE_ACCOUNT_INFO = None
 
-# Fallback to checking for a local key file (kept out of git)
-SERVICE_ACCOUNT = None
-if not SERVICE_ACCOUNT_INFO and os.path.exists("serviceAccountKey.json"):
-    SERVICE_ACCOUNT = "serviceAccountKey.json"
+# Fallback to checking for a local key file (kept out of git).
+# Prefer explicit env var `SERVICE_ACCOUNT_PATH` in short-lived environments like Render.
+SERVICE_ACCOUNT = os.environ.get("SERVICE_ACCOUNT_PATH")
+if SERVICE_ACCOUNT is None:
+    try:
+        if not SERVICE_ACCOUNT_INFO and os.path.exists("serviceAccountKey.json"):
+            SERVICE_ACCOUNT = "serviceAccountKey.json"
+    except Exception:
+        # Some hosting environments may restrict filesystem checks; don't error out.
+        SERVICE_ACCOUNT = None
