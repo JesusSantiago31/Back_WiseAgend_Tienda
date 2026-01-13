@@ -1,10 +1,3 @@
-from flask import Blueprint, jsonify, request
-from datetime import datetime, timedelta
-from utils import verificar_token
-from db import db
-
-compras_bp = Blueprint("compras_bp", __name__)
-
 @compras_bp.post("/comprar")
 def comprar_producto():
     # 1️⃣ Verificar token
@@ -12,13 +5,13 @@ def comprar_producto():
     if not user_id:
         return jsonify({"ok": False, "mensaje": "Token inválido"}), 401
 
-    # 2️⃣ Obtener id_producto del request
+    # 2️⃣ Obtener id_producto
     data = request.json or {}
     id_producto = data.get("id_producto")
     if not id_producto:
         return jsonify({"ok": False, "mensaje": "id_producto requerido"}), 400
 
-    # 3️⃣ Referencias a la BD
+    # 3️⃣ Referencias
     user_ref = db.collection("usuarios").document(user_id)
     prod_ref = db.collection("tienda_productos").document(id_producto)
     user_prod_ref = db.collection("usuarios_productos")
@@ -34,7 +27,7 @@ def comprar_producto():
     user = user_doc.to_dict()
     product = prod_doc.to_dict()
 
-    # 5️⃣ Validaciones de negocio
+    # 5️⃣ Validaciones
     tokens_usuario = user.get("monedas", 0)
     tipo_cuenta = user.get("tipo_cuenta", "free")
     costo = product.get("costo", 0)
@@ -46,13 +39,9 @@ def comprar_producto():
         return jsonify({"ok": False, "mensaje": "Producto solo para usuarios premium"}), 403
 
     if tokens_usuario < costo:
-        return jsonify({
-            "ok": False,
-            "mensaje": "Tokens insuficientes",
-            "tokens_disponibles": tokens_usuario
-        }), 400
+        return jsonify({"ok": False, "mensaje": "Tokens insuficientes", "tokens_disponibles": tokens_usuario}), 400
 
-    # 6️⃣ Verificar si el usuario ya compró el producto y sigue vigente
+    # 6️⃣ Verificar compra vigente
     query = user_prod_ref.where("id_usuario", "==", user_id)\
                          .where("id_producto", "==", id_producto)\
                          .where("fecha_vencimiento", ">", datetime.utcnow())\
@@ -60,17 +49,14 @@ def comprar_producto():
     if query:
         return jsonify({"ok": False, "mensaje": "Ya tienes este producto activo"}), 400
 
-    # 7️⃣ Preparar fechas
+    # 7️⃣ Fechas
     fecha_compra = datetime.utcnow()
     fecha_vencimiento = fecha_compra + timedelta(days=dias_vencimiento)
 
     # 8️⃣ Función transaccional
     @db.transactional
     def realizar_compra(transaction):
-        # Restar tokens al usuario
         transaction.update(user_ref, {"monedas": tokens_usuario - costo})
-
-        # Registrar compra en usuarios_productos
         compra_ref = user_prod_ref.document()
         transaction.set(compra_ref, {
             "id_usuario": user_id,
@@ -78,15 +64,13 @@ def comprar_producto():
             "fecha_compra": fecha_compra,
             "fecha_vencimiento": fecha_vencimiento
         })
-
-        # Si es suscripción premium, actualizar tipo_cuenta y vencimiento
         if tipo_producto == "premium":
             transaction.update(user_ref, {
                 "tipo_cuenta": "premium",
                 "premium_vencimiento": fecha_vencimiento
             })
 
-    # Ejecutar la transacción
+    # Ejecutar transacción
     transaction = db.transaction()
     realizar_compra(transaction)
 
@@ -94,14 +78,13 @@ def comprar_producto():
     if tipo_producto == "premium":
         mensaje = f"Suscripción Premium activada por {dias_vencimiento} días"
 
-    # 9️⃣ Respuesta
     return jsonify({
         "ok": True,
         "mensaje": mensaje,
         "tokens_restantes": tokens_usuario - costo,
-        "fecha_vencimiento": fecha_vencimiento.isoformat(),
+        "fecha_vencimiento": fecha_vencimiento.isoformat() if tipo_producto == "premium" else None,
         "producto": {
-            "id": product.get("id"),
+            "id": prod_doc.id,
             "nombre": product.get("nombre"),
             "descripcion": product.get("descripcion"),
             "costo": costo,
