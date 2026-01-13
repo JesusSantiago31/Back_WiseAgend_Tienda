@@ -6,17 +6,25 @@ from db import db
 usuarios_bp = Blueprint("usuarios_bp", __name__)
 
 
+# EN TU BACKEND (Python)
+
 @usuarios_bp.get("/usuario/productos")
 def productos_usuario():
     user_id = verificar_token(request)
     if not user_id:
         return jsonify({"error": "Token inválido"}), 401
 
-    # 👉 AQUÍ SÍ SE USA actualizar_productos_usuario
     productos = actualizar_productos_usuario(user_id)
 
-    return jsonify({"productos_vigentes": productos}), 200
+    # 🔥 CORRECCIÓN: Convertir objetos datetime a string
+    for p in productos:
+        if "fecha_compra" in p and p["fecha_compra"]:
+            p["fecha_compra"] = p["fecha_compra"].isoformat()
+        
+        if "fecha_vencimiento" in p and p["fecha_vencimiento"]:
+            p["fecha_vencimiento"] = p["fecha_vencimiento"].isoformat()
 
+    return jsonify({"productos_vigentes": productos}), 200
 
 @usuarios_bp.get("/usuario/me")
 def obtener_usuario():
