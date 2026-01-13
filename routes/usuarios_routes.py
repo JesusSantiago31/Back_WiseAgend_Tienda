@@ -45,6 +45,8 @@ def obtener_usuario():
             # Actualizamos localmente para la respuesta
             user["tipo_cuenta"] = "free"
             user["premium_vencimiento"] = None
+     # 🔹 OBTENER PRODUCTOS VIGENTES
+    productos_vigentes = actualizar_productos_usuario(user_id)
 
     # 4️⃣ Responder con datos del usuario
     return jsonify({
@@ -54,4 +56,5 @@ def obtener_usuario():
         "tokens": user.get("monedas", 0),
         "email": user.get("correo"),
         "tipo_cuenta": user.get("tipo_cuenta", "free"),
+        "productos_comprados": productos_vigentes  # 🔥 CLAVE
     }), 200
