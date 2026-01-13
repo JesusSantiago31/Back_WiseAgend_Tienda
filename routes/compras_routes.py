@@ -20,7 +20,7 @@ def comprar_producto():
 
     # 3️⃣ Referencias a la BD
     user_ref = db.collection("usuarios").document(user_id)
-    prod_ref = db.collection("productos").document(id_producto)
+    prod_ref = db.collection("tienda_productos").document(id_producto)
     user_prod_ref = db.collection("usuarios_productos")
 
     # 4️⃣ Obtener documentos
