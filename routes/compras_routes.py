@@ -53,11 +53,11 @@ def comprar_producto():
         }), 400
 
     # 6️⃣ Verificar si el usuario ya compró el producto y sigue vigente
-    query = user_prod_ref.where(filter=[
-        ("id_usuario", "==", user_id),
-        ("id_producto", "==", id_producto),
-        ("fecha_vencimiento", ">", datetime.utcnow())
-    ]).get()
+    query = user_prod_ref \
+        .where("id_usuario", "==", user_id) \
+        .where("id_producto", "==", id_producto) \
+        .where("fecha_vencimiento", ">", datetime.utcnow()) \
+        .get()
 
     if query:
         return jsonify({"ok": False, "mensaje": "Ya tienes este producto activo"}), 400
