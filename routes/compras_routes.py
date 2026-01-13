@@ -59,8 +59,7 @@ def comprar_producto():
     query = user_prod_ref \
         .where("id_usuario", "==", user_id) \
         .where("id_producto", "==", id_producto) \
-        .where("fecha_vencimiento", ">", ahora
-) \
+        .where("fecha_vencimiento", ">", ahora) \
         .get()
 
     if query:

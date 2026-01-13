@@ -1,5 +1,5 @@
 from flask import jsonify
-from datetime import datetime
+from datetime import datetime, timezone
 from config import API_TOKEN
 from db import db
 
@@ -23,7 +23,7 @@ def verificar_token(request):
 
 
 def actualizar_productos_usuario(id_usuario):
-    ahora = datetime.utcnow()
+    ahora = datetime.now(timezone.utc)
     coleccion = db.collection("usuarios_productos")
     compras = coleccion.where("id_usuario", "==", id_usuario).stream()
 
@@ -55,11 +55,10 @@ def actualizar_productos_usuario(id_usuario):
     return productos_vigentes
 
 
-from datetime import datetime
 from db import db
 
 def obtener_ids_productos_vigentes(id_usuario):
-    ahora = datetime.utcnow()
+    ahora = datetime.now(timezone.utc)
     coleccion = db.collection("usuarios_productos")
 
     compras = coleccion.where("id_usuario", "==", id_usuario).stream()

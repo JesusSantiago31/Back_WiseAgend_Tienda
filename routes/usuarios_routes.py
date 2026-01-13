@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from utils import verificar_token, actualizar_productos_usuario, obtener_ids_productos_vigentes
-from datetime import datetime
+from datetime import datetime, timezone
 from db import db
 
 usuarios_bp = Blueprint("usuarios_bp", __name__)
@@ -42,7 +42,7 @@ def obtener_usuario():
     # Expiración de suscripción premium
     if user.get("tipo_cuenta") == "premium":
         premium_venc = user.get("premium_vencimiento")
-        if premium_venc and premium_venc < datetime.utcnow():
+        if premium_venc and premium_venc < datetime.now(timezone.utc):
             user_ref.update({
                 "tipo_cuenta": "free",
                 "premium_vencimiento": None
