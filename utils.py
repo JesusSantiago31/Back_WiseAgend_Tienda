@@ -53,3 +53,29 @@ def actualizar_productos_usuario(id_usuario):
     user_ref.update({"tipo_cuenta": "premium" if premium_activo else "free"})
 
     return productos_vigentes
+
+
+from datetime import datetime
+from db import db
+
+def obtener_ids_productos_vigentes(id_usuario):
+    ahora = datetime.utcnow()
+    coleccion = db.collection("usuarios_productos")
+
+    compras = coleccion.where("id_usuario", "==", id_usuario).stream()
+
+    ids_productos = []
+
+    for doc in compras:
+        data = doc.to_dict()
+
+        # Ignorar productos vencidos
+        if data.get("fecha_vencimiento") and data["fecha_vencimiento"] < ahora:
+            continue
+
+        # SOLO EL ID
+        if "id_producto" in data:
+            ids_productos.append(data["id_producto"])
+
+    return ids_productos
+
