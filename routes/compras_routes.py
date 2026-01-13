@@ -104,6 +104,8 @@ def comprar_producto():
         "mensaje": mensaje,
         "tokens_restantes": tokens_usuario - costo,
         "fecha_vencimiento": fecha_vencimiento.isoformat(),
+        "tipo_cuenta": "premium" if tipo_producto == "premium" else user.get("tipo_cuenta"),
+        "fecha_vencimiento": fecha_vencimiento.isoformat(),
         "producto": {
             "id": product.get("id"),
             "nombre": product.get("nombre"),
