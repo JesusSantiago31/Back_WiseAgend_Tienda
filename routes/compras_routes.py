@@ -5,6 +5,8 @@ from db import db
 
 compras_bp = Blueprint("compras_bp", __name__)
 
+from google.cloud.firestore import Transaction
+
 @compras_bp.post("/comprar")
 def comprar_producto():
     # 1️⃣ Verificar token
@@ -65,7 +67,6 @@ def comprar_producto():
     fecha_vencimiento = fecha_compra + timedelta(days=dias_vencimiento)
 
     # 8️⃣ Función transaccional
-    @db.transaction
     def realizar_compra(transaction):
         # Restar tokens al usuario
         transaction.update(user_ref, {"monedas": tokens_usuario - costo})
@@ -86,9 +87,8 @@ def comprar_producto():
                 "premium_vencimiento": fecha_vencimiento
             })
 
-    # Ejecutar la transacción
-    transaction = db.transaction()
-    realizar_compra(transaction)
+    # Ejecutar la transacción usando Firestore
+    db.run_transaction(realizar_compra)
 
     mensaje = "Producto comprado correctamente"
     if tipo_producto == "premium":
