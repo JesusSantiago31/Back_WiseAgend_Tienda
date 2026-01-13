@@ -3,9 +3,24 @@ from datetime import datetime
 from config import API_TOKEN
 from db import db
 
-def verificar_token(req):
-    auth = req.headers.get("Authorization", "")
-    return auth == f"Bearer {API_TOKEN}"
+import firebase_admin
+from firebase_admin import auth as firebase_auth
+
+def verificar_token(request):
+    auth_header = request.headers.get("Authorization")
+
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+
+    id_token = auth_header.split(" ")[1]
+
+    try:
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        return decoded_token["uid"]
+    except Exception as e:
+        print("ERROR VERIFICANDO TOKEN:", e)
+        return None
+
 
 def actualizar_productos_usuario(id_usuario):
     ahora = datetime.utcnow()
