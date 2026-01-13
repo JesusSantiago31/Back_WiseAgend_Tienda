@@ -36,6 +36,6 @@ def obtener_usuario():
         "ok": True,
         "id": user_id,
         "nombre": user.get("nombre"),
-        "tokens": user.get("tokens", 0),
-        "email": user.get("email"),
+        "tokens": user.get("monedas", 0),
+        "email": user.get("correo"),
     }), 200
