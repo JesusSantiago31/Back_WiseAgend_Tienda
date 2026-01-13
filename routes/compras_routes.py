@@ -2,8 +2,6 @@ from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 from utils import verificar_token
 from db import db
-from google.cloud.firestore import transactional
-
 
 compras_bp = Blueprint("compras_bp", __name__)
 
@@ -67,7 +65,7 @@ def comprar_producto():
     fecha_vencimiento = fecha_compra + timedelta(days=dias_vencimiento)
 
     # 8️⃣ Función transaccional
-    @db.transactional
+    @db.transaction
     def realizar_compra(transaction):
         # Restar tokens al usuario
         transaction.update(user_ref, {"monedas": tokens_usuario - costo})
