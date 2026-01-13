@@ -3,3 +3,7 @@ Flask
 Flask-Cors
 google-cloud-firestore
 gunicorn
+google-auth
+firebase-admin
+
+python-dotenv
