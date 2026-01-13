@@ -1,11 +1,9 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 from utils import verificar_token
-from db import db
+from db import db  # Firestore client
 
 compras_bp = Blueprint("compras_bp", __name__)
-
-from google.cloud.firestore import Transaction
 
 @compras_bp.post("/comprar")
 def comprar_producto():
@@ -55,10 +53,12 @@ def comprar_producto():
         }), 400
 
     # 6️⃣ Verificar si el usuario ya compró el producto y sigue vigente
-    query = user_prod_ref.where("id_usuario", "==", user_id)\
-                         .where("id_producto", "==", id_producto)\
-                         .where("fecha_vencimiento", ">", datetime.utcnow())\
-                         .get()
+    query = user_prod_ref.where(filter=[
+        ("id_usuario", "==", user_id),
+        ("id_producto", "==", id_producto),
+        ("fecha_vencimiento", ">", datetime.utcnow())
+    ]).get()
+
     if query:
         return jsonify({"ok": False, "mensaje": "Ya tienes este producto activo"}), 400
 
@@ -87,14 +87,18 @@ def comprar_producto():
                 "premium_vencimiento": fecha_vencimiento
             })
 
-    # Ejecutar la transacción usando Firestore
-    db.run_transaction(realizar_compra)
+    # 9️⃣ Ejecutar la transacción con manejo de errores
+    try:
+        with db.transaction() as transaction:
+            realizar_compra(transaction)
+    except Exception as e:
+        return jsonify({"ok": False, "mensaje": f"Error al procesar la compra: {str(e)}"}), 500
 
+    # 10️⃣ Mensaje de respuesta
     mensaje = "Producto comprado correctamente"
     if tipo_producto == "premium":
         mensaje = f"Suscripción Premium activada por {dias_vencimiento} días"
 
-    # 9️⃣ Respuesta
     return jsonify({
         "ok": True,
         "mensaje": mensaje,
