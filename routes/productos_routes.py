@@ -27,10 +27,14 @@ def obtener_productos():
 # =====================================================
 @productos_bp.post("/productos/agregar")
 def agregar_productos():
+    user_id = verificar_token(request)
 
-    # Validación del token
-    if not verificar_token(request):
+    if not user_id:
         return jsonify({"error": "Token inválido"}), 401
+
+    user_doc = db.collection("usuarios").document(user_id).get()
+    if not user_doc.exists or user_doc.to_dict().get("rol") != "admin":
+        return jsonify({"error": "No autorizado"}), 403
 
     body = request.get_json()
 
@@ -39,7 +43,7 @@ def agregar_productos():
 
     productos = body["productos"]
 
-    if not isinstance(productos, list) or len(productos) == 0:
+    if not isinstance(productos, list) or not productos:
         return jsonify({"error": "La lista de productos no puede estar vacía"}), 400
 
     productos_ref = db.collection("tienda_productos")
@@ -48,8 +52,6 @@ def agregar_productos():
     errores = []
 
     for p in productos:
-
-        # Validación de campos obligatorios
         obligatorios = ["id_producto", "nombre", "costo", "tipo"]
         faltan = [campo for campo in obligatorios if campo not in p]
 
@@ -62,30 +64,34 @@ def agregar_productos():
 
         id_producto = p["id_producto"]
 
-        # Verificar si ya existe
-        doc = productos_ref.document(id_producto).get()
-        if doc.exists:
+        if productos_ref.document(id_producto).get().exists:
             errores.append({
                 "id_producto": id_producto,
                 "error": "El producto ya existe"
             })
             continue
 
-        # Construcción del objeto final
+        try:
+            costo = int(p.get("costo", 0))
+        except (TypeError, ValueError):
+            errores.append({
+                "id_producto": id_producto,
+                "error": "Costo inválido"
+            })
+            continue
+
         nuevo_producto = {
             "nombre": p.get("nombre"),
             "descripcion": p.get("descripcion", ""),
-            "costo": p.get("costo", 0),
-            "tipo": p.get("tipo"),                      # recompensa / premium / etc.
+            "costo": costo,
+            "tipo": p.get("tipo"),
             "category": p.get("category", ""),
-            "premium": p.get("premium", False),
+            "premium": bool(p.get("premium", False)),
             "icono": p.get("icono", ""),
-            "canjeado": p.get("canjeado", False),
-            "vencimieto": p.get("vencimiento", 0),
-                # homogeneización con backend
+            "canjeado": bool(p.get("canjeado", False)),
+            "vencimiento": p.get("vencimiento", 0),
         }
 
-        # Guardar en Firestore
         productos_ref.document(id_producto).set(nuevo_producto)
         productos_agregados.append(id_producto)
 
