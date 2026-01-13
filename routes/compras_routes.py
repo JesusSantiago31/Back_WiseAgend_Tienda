@@ -1,12 +1,15 @@
 from flask import Blueprint, jsonify, request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
 from utils import verificar_token
 from db import db  # Firestore client
+
 
 compras_bp = Blueprint("compras_bp", __name__)
 
 @compras_bp.post("/comprar")
 def comprar_producto():
+    ahora = datetime.now(timezone.utc)
     # 1️⃣ Verificar token
     user_id = verificar_token(request)
     if not user_id:
@@ -56,15 +59,17 @@ def comprar_producto():
     query = user_prod_ref \
         .where("id_usuario", "==", user_id) \
         .where("id_producto", "==", id_producto) \
-        .where("fecha_vencimiento", ">", datetime.utcnow()) \
+        .where("fecha_vencimiento", ">", ahora
+) \
         .get()
 
     if query:
         return jsonify({"ok": False, "mensaje": "Ya tienes este producto activo"}), 400
 
     # 7️⃣ Preparar fechas
-    fecha_compra = datetime.utcnow()
-    fecha_vencimiento = fecha_compra + timedelta(days=dias_vencimiento)
+    fecha_compra = ahora
+    fecha_vencimiento = ahora + timedelta(days=dias_vencimiento)
+
 
     # 8️⃣ Función transaccional
     def realizar_compra(transaction):
@@ -105,7 +110,7 @@ def comprar_producto():
         "tokens_restantes": tokens_usuario - costo,
         "fecha_vencimiento": fecha_vencimiento.isoformat(),
         "tipo_cuenta": "premium" if tipo_producto == "premium" else user.get("tipo_cuenta"),
-        "fecha_vencimiento": fecha_vencimiento.isoformat(),
+        
         "producto": {
             "id": product.get("id"),
             "nombre": product.get("nombre"),
